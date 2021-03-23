@@ -1,0 +1,16 @@
+title SlackBot: Serverless Slash Command
+
+Slack -->+ API Gateway: /do-thing --flag foo=bar
+API Gateway -->+ Cmd Controller Lambda: cmd payload
+note over Cmd Controller Lambda: 
+    1. Send Sync Response to Slack
+    2. Forward Async job to Worker
+end note
+Cmd Controller Lambda -->- API Gateway: 200 ok
+API Gateway -->- Slack: 200 ok
+Cmd Controller Lambda -> DoThing Worker Lambda: forward cmd payload
+note over DoThing Worker Lambda: 
+    1. Perform requested job
+    2. Post message back to Slack
+end note
+DoThing Worker Lambda -> Slack: job ok

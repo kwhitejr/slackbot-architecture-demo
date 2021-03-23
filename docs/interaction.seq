@@ -1,0 +1,25 @@
+title SlackBot: Serverless Slash Command and Interaction
+
+Slack -->+ API Gateway: /start-interaction --flag foo=bar
+API Gateway -->+ Cmd Controller Lambda: cmd payload
+note over Cmd Controller Lambda: 
+    1. Send Sync Response to Slack
+    2. Forward Async job to Worker
+end note
+Cmd Controller Lambda -->- API Gateway: 200 ok
+API Gateway -->- Slack: 200 ok
+Cmd Controller Lambda -> MyInteraction Worker Lambda: forward job payload
+note over MyInteraction Worker Lambda: 
+    1. Create interaction config
+    2. Post interaction back to Slack
+end note
+MyInteraction Worker Lambda -> Slack: interaction
+Slack -->+ API Gateway: User Input
+API Gateway -->+ Interaction Controller Lambda: user input payload
+Interaction Controller Lambda -->- API Gateway: 204 ok
+API Gateway -->- Slack: 204 ok
+Interaction Controller Lambda -> UserInput Worker Lambda: user input payload
+note over UserInput Worker Lambda: 
+    Respond to user input
+end note
+UserInput Worker Lambda -> Slack: job complete
