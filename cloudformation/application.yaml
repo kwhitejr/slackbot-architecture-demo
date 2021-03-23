@@ -1,0 +1,205 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: 'Stack name rcp-slack'
+
+Parameters:
+  SlackToken:
+    Type: String
+    Description: Slack token to access Slack APIs.
+    Default: your-token-here
+  NodeEnv:
+    Type: String
+    Description: The (Node.js) deployment environment.
+    Default: test
+  HostedZone: 
+    Type: String
+    Description: The Route53 hosted zone for the SlackBot's static callback endpoints.
+    Default: yoursite.com
+  SubDomain:
+    Type: String
+    Description: The subdomain to prepend to the hosted zone, e.g. "slackbot" in slackbot-us-east-1.yoursite.com
+    Default: slackbot
+
+Globals:
+  Function:
+    Handler: src/index.handler
+    Runtime: nodejs14.x
+    MemorySize: 128
+    Timeout: 10
+    Environment:
+      Variables:
+        SLACK_TOKEN: !Sub "${SlackToken}"
+        NODE_ENV: !Sub "${NodeEnv}"
+
+Resources:
+
+  ################################################################################
+  # Lambdas: Controllers and Workers
+  ################################################################################
+  SlackCommandController:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: slack-command-controller
+      Description: Delegate slack bot commands to worker lambdas and return sync response
+      CodeUri: ../build/slack-command-controller
+      Role: !GetAtt SlackCommandControllerRole.Arn
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Method: POST
+            Path: "/invoke"
+  
+  SlackInteractionController:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: slack-interaction-controller
+      Description: Delegate slack bot interactions to worker lambdas and return sync response
+      CodeUri: ../build/slack-interaction-controller
+      Role: !GetAtt SlackInteractionControllerRole.Arn
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Method: POST
+            Path: "/interaction"
+
+  HandleFoobarCommandWorker:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: handle-foobar-command-worker
+      Description: Handles /foobar workloads.
+      CodeUri: ../build/handle-foobar-command-worker
+      Role: !GetAtt WorkerRole.Arn
+
+  HandleQuizInteractionWorker:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: handle-quiz-interaction-worker
+      Description: Handles /quiz interactions.
+      CodeUri: ../build/handle-quiz-interaction-worker
+      Role: !GetAtt WorkerRole.Arn
+
+  ################################################################################
+  # Permissions
+  ################################################################################
+  WorkerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: slack-worker
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  ControllerRole:
+    DependsOn:
+    - HandleFoobarCommandWorker
+    - HandleQuizInteractionWorker
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: slack-controller
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+        - PolicyName: slack-controller-policies
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action: lambda:InvokeFunction
+              Resource:
+              - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:handle-foobar-command-worker"
+              - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:handle-quiz-interaction-worker"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  
+  SlackInteractionControllerRole:
+    DependsOn:
+    - HandleOrderTransitionWorker
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: rcp-slack-interaction-controller-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+        - PolicyName: slack-interaction-controller-policies
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action: lambda:InvokeFunction
+              Resource:
+              - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rcp-handle-order-transition-worker"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  ################################################################################
+  # DNS/Network Infrastructure
+  ################################################################################
+  ApiDomainName:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      EndpointConfiguration: 
+        Types:
+        - REGIONAL
+      RegionalCertificateArn: !Ref Certificate
+      DomainName: !Sub "${SubDomain}-${AWS::Region}.${HostedZone}"
+
+  DNSRecord:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: !Sub "${HostedZone}."
+      Comment: Route requests to the API Gateways
+      RecordSets:
+      - Name: !Sub "${SubDomain}-${AWS::Region}.${HostedZone}"
+        Type: A
+        SetIdentifier: !Ref 'AWS::StackName'
+        Weight: '1'
+        AliasTarget:
+          DNSName: !GetAtt ApiDomainName.RegionalDomainName
+          HostedZoneId: !GetAtt ApiDomainName.RegionalHostedZoneId
+    DependsOn:
+    - ApiDomainName
+  
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties: 
+      DomainName: !Sub "${SubDomain}-${AWS::Region}.${HostedZone}"
+      ValidationMethod: DNS
+
+  ################################################################################
+  # API Gateway
+  ################################################################################
+  ApiBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    DependsOn:
+    - ApiStage # Implicitly generated https://github.com/aws/serverless-application-model/issues/192
+    Properties:
+      DomainName: !Ref ApiDomainName
+      RestApiId: !Ref Api
+      Stage: !Sub "${NodeEnv}"
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Sub "${NodeEnv}"
+      EndpointConfiguration: REGIONAL
+
+  
