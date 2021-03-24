@@ -74,11 +74,19 @@ Resources:
       CodeUri: ../build/handle-foobar-command-worker
       Role: !GetAtt WorkerRole.Arn
 
+  HandleQuizCommandWorker:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: handle-quiz-command-worker
+      Description: Handles /quiz commands, initiates a quiz interaction.
+      CodeUri: ../build/handle-quiz-command-worker
+      Role: !GetAtt WorkerRole.Arn
+  
   HandleQuizInteractionWorker:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: handle-quiz-interaction-worker
-      Description: Handles /quiz interactions.
+      Description: Handle user input to quiz interactions.
       CodeUri: ../build/handle-quiz-interaction-worker
       Role: !GetAtt WorkerRole.Arn
 
@@ -99,13 +107,13 @@ Resources:
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
-  ControllerRole:
+  CommandControllerRole:
     DependsOn:
     - HandleFoobarCommandWorker
     - HandleQuizInteractionWorker
     Type: AWS::IAM::Role
     Properties:
-      RoleName: slack-controller
+      RoleName: command-controller
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -114,7 +122,7 @@ Resources:
             Service: lambda.amazonaws.com
           Action: sts:AssumeRole
       Policies:
-        - PolicyName: slack-controller-policies
+        - PolicyName: command-controller-policies
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -122,16 +130,16 @@ Resources:
               Action: lambda:InvokeFunction
               Resource:
               - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:handle-foobar-command-worker"
-              - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:handle-quiz-interaction-worker"
+              - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:handle-quiz-command-worker"
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
   
-  SlackInteractionControllerRole:
+  InteractionControllerRole:
     DependsOn:
-    - HandleOrderTransitionWorker
+    - HandleQuizInteractionWorker
     Type: AWS::IAM::Role
     Properties:
-      RoleName: rcp-slack-interaction-controller-role
+      RoleName: interaction-controller-role
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -140,14 +148,14 @@ Resources:
             Service: lambda.amazonaws.com
           Action: sts:AssumeRole
       Policies:
-        - PolicyName: slack-interaction-controller-policies
+        - PolicyName: interaction-controller-policies
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
             - Effect: Allow
               Action: lambda:InvokeFunction
               Resource:
-              - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rcp-handle-order-transition-worker"
+              - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:handle-quiz-response-worker"
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
