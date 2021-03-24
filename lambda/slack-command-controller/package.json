@@ -1,0 +1,13 @@
+{
+  "name": "slack-command-controller",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "author": "@kwhitejr",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "aws-sdk": "^2.439.0"
+  },
+  "dependencies": {
+    "query-string": "^6.13.1"
+  }
+}

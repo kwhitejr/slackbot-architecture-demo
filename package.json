@@ -1,0 +1,20 @@
+{
+  "name": "@kwhitejr/slackbot-architecture-demo",
+  "version": "1.0.0",
+  "description": "Some demo architecture for a SlackBot",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kwhitejr/slackbot-architecture-demo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kwhitejr/slackbot-architecture-demo/issues"
+  },
+  "homepage": "https://github.com/kwhitejr/slackbot-architecture-demo#readme"
+}
