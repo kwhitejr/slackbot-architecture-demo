@@ -3,10 +3,10 @@ const AWS = require('aws-sdk');
 const handler = async (event) => {
   try {
     const payload = getInteractionResponse(event);
-    console.log(JSON.stringify(payload));
     const lambda = new AWS.Lambda();
+    const invocationParams = makeInvocationParams(payload);
 
-    return lambda.invokeAsync(makeInvocationParams(payload))
+    return lambda.invokeAsync(invocationParams)
       .promise()
       .then(() => ({ statusCode: 204 }))
       .catch((err) => ({ statusCode: 200, body: `An error occurred: ${err.message}.` }));
@@ -32,4 +32,9 @@ const getInteractionResponse = (event) => {
     throw new Error(`Could not parse body: ${err}`);
   }
   return payload;
+};
+
+module.exports = {
+  handler,
+  getInteractionResponse
 };

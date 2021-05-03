@@ -4,6 +4,7 @@
   "description": "Some demo architecture for a SlackBot",
   "main": "index.js",
   "scripts": {
+    "sharelibs": "scripts/share-libs.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -16,5 +17,9 @@
   "bugs": {
     "url": "https://github.com/kwhitejr/slackbot-architecture-demo/issues"
   },
-  "homepage": "https://github.com/kwhitejr/slackbot-architecture-demo#readme"
+  "homepage": "https://github.com/kwhitejr/slackbot-architecture-demo#readme",
+  "dependencies": {
+    "fs-extra": "^9.1.0",
+    "path": "^0.12.7"
+  }
 }

@@ -1,0 +1,10 @@
+{
+  "name": "handle-foobar-command-worker",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "author": "@kwhitejr",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "aws-sdk": "^2.439.0"
+  }
+}
