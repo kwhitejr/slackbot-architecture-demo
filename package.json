@@ -4,6 +4,7 @@
   "description": "Some demo architecture for a SlackBot",
   "main": "index.js",
   "scripts": {
+    "install-all": "scripts/install-all.sh",
     "sharelibs": "scripts/share-libs.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

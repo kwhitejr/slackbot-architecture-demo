@@ -1,5 +1,11 @@
 const querystring = require('querystring');
-const { isHelp, postMessageToChannel, codeblockFormat } = require('./project-lib/slack-utils')
+const { 
+  isHelp, 
+  postMessageToChannel, 
+  postModalToChannel,
+  updateModalToChannel,
+  codeblockFormat 
+} = require('./project-lib/slack-utils')
 const { helpText } = require('./help-text')
 
 const handler = async (event) => {
@@ -24,7 +30,7 @@ const handler = async (event) => {
         })
       case 'modal': 
         // 1. Send empty modal immediately (before trigger_id expires), then do work
-        const emptyModal = await postModalToChat({ trigger_id, view: makeEmptyModal() });
+        const emptyModal = await postModalToChannel({ trigger_id, view: makeEmptyModal() });
         
         // 2. Do work...
         
@@ -32,7 +38,7 @@ const handler = async (event) => {
         const modal = makeQuizModal(name);
 
         // 3. Send actual quiz modal
-        return await updateModalToChat({ view_id: emptyModal.view.id, view: modal });
+        return await updateModalToChannel({ view_id: emptyModal.view.id, view: modal });
       case 'home':
         // implement me!
         return undefined;

@@ -11,6 +11,6 @@ for lambda in lambda/*;
   do
    if [[ -d $lambda && -f "${lambda}/package.json" ]]; then
     echo $lambda
-     npm ci --cwd "${lambda}" --prefix "${lambda}" # --registry $registry
+     npm install --cwd "${lambda}" --prefix "${lambda}" # --registry $registry
    fi
   done;
